@@ -71,10 +71,10 @@ include ../Make-config
 #-----------------------------------------------------------------------------
 
 ann_test.o: ann_test.cc
-	$(C++) -c -I$(INCDIR) $(CFLAGS2) ann_test.cc
+	$(C++) -c -I$(INCDIR) $(CFLAGS) $(CFLAGS2) ann_test.cc
 
 rand.o: rand.cc
-	$(C++) -c -I$(INCDIR) $(CFLAGS2) rand.cc
+	$(C++) -c -I$(INCDIR) $(CFLAGS) $(CFLAGS2) rand.cc
 
 #-----------------------------------------------------------------------------
 # Cleaning

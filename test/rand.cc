@@ -42,9 +42,15 @@ int	idum = 0;			// used for random number generation
 //	to initialise or reinitialise the sequence.
 //------------------------------------------------------------------------
 
-extern "C" int random();		// random number generators
-extern "C" int srandom(unsigned int);
-// extern "C" void srandom(int);	// (this may be needed on older systems)
+           				// "standard" random number generators
+#ifdef USING_SGI			// SGI versions
+extern "C" long random(void);
+extern "C" void srandom(unsigned);
+#endif
+#ifdef USING_SUNOS5			// SUNOS5 versions
+extern "C" int random(void);
+extern "C" int srandom(unsigned);
+#endif
 
 double ran0()
 {
@@ -72,9 +78,8 @@ double ran0()
 	srandom(idum);
 	idum = 1;
 
-	double dum;
 	for (j = 1; j <= 97; j++)	// exercise the system routine
-	    dum = random();
+	    random();			// (value intentionally ignored)
 
 	for (j = 1; j <= 97; j++)	// Then save 97 values and a 98th
 	    v[j] = random();

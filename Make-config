@@ -32,21 +32,29 @@
 CFLAGS2 = -DPERF
 # CFLAGS2 = 
 
-#					SGI with CC
 sgi:
 	$(MAKE) targets \
 	"ANNLIB = libANN.a" \
 	"C++ = CC -ansi" \
-	"CFLAGS = -O2" \
+	"CFLAGS = -O2 -DUSING_SGI" \
 	"MAKELIB = ar ruv" \
 	"RANLIB = true"
+
+#					DEC Alpha with g++
+alpha-g++:
+	$(MAKE) targets \
+	"ANNLIB = libANN.a" \
+	"C++ = g++" \
+	"CFLAGS = -O3 -DUSING_ALPHA" \
+	"MAKELIB = ar ruv" \
+	"RANLIB = ranlib"
 
 #					SunOS4
 sunos4:
 	$(MAKE) targets \
 	"ANNLIB = libANN.a" \
 	"C++ = CC" \
-	"CFLAGS = -O" \
+	"CFLAGS = -O -DUSING_SUNOS4" \
 	"MAKELIB = ar ruv" \
 	"RANLIB = ranlib"
 
@@ -55,12 +63,9 @@ sunos4-g++:
 	$(MAKE) targets \
 	"ANNLIB = libANN.a" \
 	"C++ = g++" \
-	"CFLAGS = -O3" \
+	"CFLAGS = -O3 -DUSING_SUNOS4" \
 	"MAKELIB = ar ruv" \
 	"RANLIB = ranlib"
-
-#					DEC Alpha with g++
-alpha-g++: sunos4-g++
 
 #					SunOS4 with g++ and shared libraries
 sunos4-g++-sl:			
@@ -68,7 +73,7 @@ sunos4-g++-sl:
 	"ANNLIB = libANN.so" \
 	"C++ = g++" \
 	"CC = g++" \
-	"CFLAGS = -fPIC -O3" \
+	"CFLAGS = -fPIC -O3 -DUSING_SUNOS4" \
 	"MAKELIB = ld -assert pure-text -o" \
 	"RANLIB = true"
 
@@ -77,7 +82,7 @@ sunos5:
 	$(MAKE) targets \
 	"ANNLIB = libANN.a" \
 	"C++ = CC" \
-	"CFLAGS = -O" \
+	"CFLAGS = -O -DUSING_SUNOS5" \
 	"MAKELIB = ar ruv" \
 	"RANLIB = true"
 
@@ -86,7 +91,7 @@ sunos5-sl:
 	$(MAKE) targets \
 	"ANNLIB = libANN.a" \
 	"C++ = CC" \
-	"CFLAGS = -Kpic -O" \
+	"CFLAGS = -Kpic -O -DUSING_SUNOS5" \
 	"MAKELIB = ld -G -o" \
 	"RANLIB = true"
 
@@ -95,7 +100,7 @@ sunos5-g++:
 	$(MAKE) targets \
 	"ANNLIB = libANN.a" \
 	"C++ = g++" \
-	"CFLAGS = -O3" \
+	"CFLAGS = -O3 -DUSING_SUNOS5" \
 	"MAKELIB = ar ruv" \
 	"RANLIB = true"
 
@@ -104,7 +109,7 @@ sunos5-g++-sl:
 	$(MAKE) targets \
 	"ANNLIB = libANN.so" \
 	"C++ = g++" \
-	"CFLAGS = -fpic -O3" \
+	"CFLAGS = -fpic -O3 -DUSING_SUNOS5" \
 	"MAKELIB = ld -G -o" \
 	"RANLIB = true"
 
@@ -113,6 +118,6 @@ authors-debug:
 	$(MAKE) targets \
 	"ANNLIB = libANN.a" \
 	"C++ = g++" \
-	"CFLAGS = -g" \
+	"CFLAGS = -g -DUSING_SUNOS5" \
 	"MAKELIB = ar ruv" \
 	"RANLIB = true"

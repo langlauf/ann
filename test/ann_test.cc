@@ -32,6 +32,10 @@
 
 #include "rand.h"			// random point generation
 
+#ifndef CLOCKS_PER_SEC			// define clocks-per-second if needed
+#define CLOCKS_PER_SEC          1000000
+#endif
+
 //----------------------------------------------------------------------
 // ann_test
 //
@@ -1114,7 +1118,7 @@ void doValidation()			// perform validation
     ANNdistArray  curr_apx_dst = apx_dists;	// approx distance pointer
     int		 *curr_tru_idx = true_nn_idx;	// true index pointer
     ANNdistArray  curr_tru_dst = true_dists;	// true distance pointer
-    int i, j, k;
+    int i, j;
     if (true_nn < near_neigh) {
 	Error("Cannot validate with fewer true near neighbors than actual", ANNabort);
     }

@@ -1,5 +1,5 @@
 ANN: Approximate Nearest Neighbors
-Version: 0.1 (Beta release)
+Version: 0.2 (Beta release)
 ----------------------------------------------------------------------------
 Copyright (c) 1997-1998 University of Maryland and Sunil Arya and David Mount
 All Rights Reserved.
@@ -26,6 +26,8 @@ It is provided "as is" without express or implied warranty.
 ----------------------------------------------------------------------------
 Version 0.1  03/04/98
       Preliminary release
+Version 0.2  06/24/98
+      Changes for SGI compiler.
 ----------------------------------------------------------------------------
 
 Authors

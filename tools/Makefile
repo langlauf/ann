@@ -25,7 +25,7 @@ LIBDIR	= $(BASEDIR)/lib
 BINDIR	= $(BASEDIR)/bin
 LDFLAGS	= -L$(LIBDIR)
 ANNLIBS	= -lANN
-OTHERLIBS = 
+OTHERLIBS = -lm
 
 #-----------------------------------------------------------------------------
 # Some more definitions
@@ -41,7 +41,7 @@ OBJECTS = $(SOURCES:.cc=.o)		# object files
 #-----------------------------------------------------------------------------
 
 .cc.o:
-	$(C++) -c -I$(INCDIR) $(CFLAGS2) $<
+	$(C++) -c -I$(INCDIR) $(CFLAGS) $(CFLAGS2) $<
 
 #-----------------------------------------------------------------------------
 # Make the program

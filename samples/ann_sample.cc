@@ -23,6 +23,7 @@
 
 #include <stdio.h>			// C I/O
 #include <fstream.h>			// file I/O
+#include <string.h>			// string manipulation
 #include <math.h>			// math routines
 #include <ANN/ANN.h>			// ANN declarations
 
@@ -58,12 +59,12 @@ int		m_pts		= 1000;		// maximum number of data points
 istream		*data_in	= NULL;		// input for data points
 istream		*query_in	= NULL;		// input for query points
 
-bool readPt(istream &in, ANNpoint p)		// read point (false on EOF)
+ANNbool readPt(istream &in, ANNpoint p)		// read point (false on EOF)
 {
     for (int i = 0; i < dim; i++) {
-	if(!(in >> p[i])) return false;
+	if(!(in >> p[i])) return ANNfalse;
     }
-    return true;
+    return ANNtrue;
 }
 
 void printPt(ostream &out, ANNpoint p)		// print point
