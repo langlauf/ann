@@ -8,8 +8,8 @@
 #	Initial release
 #-----------------------------------------------------------------------------
 # Note: For full performance measurements, it is assumed that the library
-# and this program have both been compiled with the -DPERF flag.  See the
-# Makefile in the ANN base directory for this flag.
+# and this program have both been compiled with the -DANN_PERF flag.  See
+# the Makefile in the ANN base directory for this flag.
 #-----------------------------------------------------------------------------
 
 #-----------------------------------------------------------------------------
@@ -41,8 +41,8 @@ ANNTEST = ann_test
 PURIFY  = purify
 
 HEADERS = rand.h
-TESTSOURCES = ann_test.cc rand.cc
-TESTOBJECTS = $(TESTSOURCES:.cc=.o)
+TESTSOURCES = ann_test.cpp rand.cpp
+TESTOBJECTS = $(TESTSOURCES:.cpp=.o)
 
 #-----------------------------------------------------------------------------
 # Make the program
@@ -70,18 +70,17 @@ include ../Make-config
 # Objects
 #-----------------------------------------------------------------------------
 
-ann_test.o: ann_test.cc
-	$(C++) -c -I$(INCDIR) $(CFLAGS) $(CFLAGS2) ann_test.cc
+ann_test.o: ann_test.cpp
+	$(C++) -c -I$(INCDIR) $(CFLAGS) ann_test.cpp
 
-rand.o: rand.cc
-	$(C++) -c -I$(INCDIR) $(CFLAGS) $(CFLAGS2) rand.cc
+rand.o: rand.cpp
+	$(C++) -c -I$(INCDIR) $(CFLAGS) rand.cpp
 
 #-----------------------------------------------------------------------------
 # Cleaning
 #-----------------------------------------------------------------------------
 
 clean:
-	-rm -f *.o core
+	-rm -f *.o *.out core
 
 realclean: clean
-	-rm -f $(BINDIR)/$(ANNTEST)

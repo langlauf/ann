@@ -1,12 +1,26 @@
 #-----------------------------------------------------------------------------
-# Makefile for core library
-#
-# ANN: Approximate Nearest Neighbors
-# Version: 0.1 (Beta release)
-#-----------------------------------------------------------------------------
-# Revision 0.1  03/04/98
-#	Initial release
-#-----------------------------------------------------------------------------
+# Makefile for ANN library
+#----------------------------------------------------------------------
+# Copyright (c) 1997-2005 University of Maryland and Sunil Arya and
+# David Mount.  All Rights Reserved.
+# 
+# This software and related documentation is part of the Approximate
+# Nearest Neighbor Library (ANN).  This software is provided under
+# the provisions of the Lesser GNU Public License (LGPL).  See the
+# file ../ReadMe.txt for further information.
+# 
+# The University of Maryland (U.M.) and the authors make no
+# representations about the suitability or fitness of this software for
+# any purpose.  It is provided "as is" without express or implied
+# warranty.
+#----------------------------------------------------------------------
+# History:
+#	Revision 0.1  03/04/98
+#		Initial release
+#	Revision 1.0  04/01/05
+#		Renamed files from .cc to .cpp for Microsoft Visual C++
+#		Added kd_dump.cpp
+#----------------------------------------------------------------------
 
 #-----------------------------------------------------------------------------
 # Some basic definitions:
@@ -18,21 +32,14 @@ BASEDIR	= ..
 INCDIR	= $(BASEDIR)/include
 LIBDIR	= $(BASEDIR)/lib
 
-SOURCES = ANN.cc brute.cc kd_tree.cc kd_util.cc kd_split.cc \
-	kd_search.cc kd_pr_search.cc bd_tree.cc bd_search.cc \
-	bd_pr_search.cc perf.cc
+SOURCES = ANN.cpp brute.cpp kd_tree.cpp kd_util.cpp kd_split.cpp \
+	kd_dump.cpp kd_search.cpp kd_pr_search.cpp bd_tree.cpp \
+	bd_search.cpp bd_pr_search.cpp perf.cpp
 
 HEADERS = kd_tree.h kd_split.h kd_util.h kd_search.h \
 	kd_pr_search.h perf.h pr_queue.h pr_queue_k.h
 
-OBJECTS = $(SOURCES:.cc=.o)
-
-#-----------------------------------------------------------------------------
-# Rules
-#-----------------------------------------------------------------------------
-
-.cc.o:
-	$(C++) -c -I$(INCDIR) $(CFLAGS) $(CFLAGS2) $<
+OBJECTS = $(SOURCES:.cpp=.o)
 
 #-----------------------------------------------------------------------------
 # Make the library
@@ -52,38 +59,41 @@ $(LIBDIR)/$(ANNLIB): $(OBJECTS)
 # Make object files
 #-----------------------------------------------------------------------------
 
-ANN.o: ANN.cc
-	$(C++) -c -I$(INCDIR) $(CFLAGS) $(CFLAGS2) ANN.cc
+ANN.o: ANN.cpp
+	$(C++) -c -I$(INCDIR) $(CFLAGS) ANN.cpp
 
-brute.o: brute.cc
-	$(C++) -c -I$(INCDIR) $(CFLAGS) $(CFLAGS2) brute.cc
+brute.o: brute.cpp
+	$(C++) -c -I$(INCDIR) $(CFLAGS) brute.cpp
 
-kd_tree.o: kd_tree.cc
-	$(C++) -c -I$(INCDIR) $(CFLAGS) $(CFLAGS2) kd_tree.cc
+kd_tree.o: kd_tree.cpp
+	$(C++) -c -I$(INCDIR) $(CFLAGS) kd_tree.cpp
 
-kd_util.o: kd_util.cc
-	$(C++) -c -I$(INCDIR) $(CFLAGS) $(CFLAGS2) kd_util.cc
+kd_util.o: kd_util.cpp
+	$(C++) -c -I$(INCDIR) $(CFLAGS) kd_util.cpp
 
-kd_split.o: kd_split.cc
-	$(C++) -c -I$(INCDIR) $(CFLAGS) $(CFLAGS2) kd_split.cc
+kd_split.o: kd_split.cpp
+	$(C++) -c -I$(INCDIR) $(CFLAGS) kd_split.cpp
 
-kd_search.o: kd_search.cc
-	$(C++) -c -I$(INCDIR) $(CFLAGS) $(CFLAGS2) kd_search.cc
+kd_search.o: kd_search.cpp
+	$(C++) -c -I$(INCDIR) $(CFLAGS) kd_search.cpp
 
-kd_pr_search.o: kd_pr_search.cc
-	$(C++) -c -I$(INCDIR) $(CFLAGS) $(CFLAGS2) kd_pr_search.cc
+kd_pr_search.o: kd_pr_search.cpp
+	$(C++) -c -I$(INCDIR) $(CFLAGS) kd_pr_search.cpp
 
-bd_tree.o: bd_tree.cc
-	$(C++) -c -I$(INCDIR) $(CFLAGS) $(CFLAGS2) bd_tree.cc
+kd_dump.o: kd_dump.cpp
+	$(C++) -c -I$(INCDIR) $(CFLAGS) kd_dump.cpp
 
-bd_search.o: bd_search.cc
-	$(C++) -c -I$(INCDIR) $(CFLAGS) $(CFLAGS2) bd_search.cc
+bd_tree.o: bd_tree.cpp
+	$(C++) -c -I$(INCDIR) $(CFLAGS) bd_tree.cpp
 
-bd_pr_search.o: bd_pr_search.cc
-	$(C++) -c -I$(INCDIR) $(CFLAGS) $(CFLAGS2) bd_pr_search.cc
+bd_search.o: bd_search.cpp
+	$(C++) -c -I$(INCDIR) $(CFLAGS) bd_search.cpp
 
-perf.o: perf.cc
-	$(C++) -c -I$(INCDIR) $(CFLAGS) $(CFLAGS2) perf.cc
+bd_pr_search.o: bd_pr_search.cpp
+	$(C++) -c -I$(INCDIR) $(CFLAGS) bd_pr_search.cpp
+
+perf.o: perf.cpp
+	$(C++) -c -I$(INCDIR) $(CFLAGS) perf.cpp
 
 #-----------------------------------------------------------------------------
 # Configuration definitions

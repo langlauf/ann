@@ -36,8 +36,8 @@ ANNLIBS	= -lANN -lm
 
 ANNSAMP = ann_sample
 
-SAMPSOURCES = ann_sample.cc
-SAMPOBJECTS = $(SAMPSOURCES:.cc=.o)
+SAMPSOURCES = ann_sample.cpp
+SAMPOBJECTS = $(SAMPSOURCES:.cpp=.o)
 
 #-----------------------------------------------------------------------------
 # Make the program
@@ -62,15 +62,14 @@ include ../Make-config
 # Objects
 #-----------------------------------------------------------------------------
 
-ann_sample.o: ann_sample.cc
-	$(C++) -c -I$(INCDIR) $(CFLAGS2) ann_sample.cc
+ann_sample.o: ann_sample.cpp
+	$(C++) -c -I$(INCDIR) ann_sample.cpp
 
 #-----------------------------------------------------------------------------
 # Cleaning
 #-----------------------------------------------------------------------------
 
 clean:
-	-rm -f *.o core
+	-rm -f *.o *.out core
 
 realclean: clean
-	-rm -f $(BINDIR)/$(ANNSAMP)

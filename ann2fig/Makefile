@@ -1,5 +1,5 @@
 #-----------------------------------------------------------------------------
-# Makefile for tools
+# Makefile for ann2fig
 #
 # ANN: Approximate Nearest Neighbors
 # Version: 0.1 (Beta release)
@@ -29,19 +29,12 @@ OTHERLIBS = -lm
 
 #-----------------------------------------------------------------------------
 # Some more definitions
-#		ANNTEST		name of test program
+#	ANN2FIG		name of executable
 #-----------------------------------------------------------------------------
 
-ANN2FIG = ann2fig			# name of figure drawing program
-SOURCES = ann2fig.cc			# source files
-OBJECTS = $(SOURCES:.cc=.o)		# object files
-
-#-----------------------------------------------------------------------------
-# Rules
-#-----------------------------------------------------------------------------
-
-.cc.o:
-	$(C++) -c -I$(INCDIR) $(CFLAGS) $(CFLAGS2) $<
+ANN2FIG = ann2fig
+SOURCES = ann2fig.cpp
+OBJECTS = $(SOURCES:.cpp=.o)
 
 #-----------------------------------------------------------------------------
 # Make the program
@@ -66,8 +59,8 @@ include ../Make-config
 # Objects
 #-----------------------------------------------------------------------------
 
-ann2fig.o: ann2fig.cc
-	$(C++) -c -I$(INCDIR) $(CFLAGS2) ann2fig.cc
+ann2fig.o: ann2fig.cpp
+	$(C++) -c -I$(INCDIR) ann2fig.cpp
 
 #-----------------------------------------------------------------------------
 # Cleaning
@@ -77,4 +70,3 @@ clean:
 	-rm -f *.o core
 
 realclean: clean
-	-rm -f $(BINDIR)/$(ANN2FIG)

@@ -3,8 +3,8 @@
   dim 2
   data_size 20
   query_size 10
-read_data_pts test1.data
-read_query_pts test1.query
+read_data_pts test1-data.pts
+read_query_pts test1-query.pts
   bucket_size 1
   near_neigh 3
   split_rule suggest

@@ -2,13 +2,9 @@
   stats query_stats
   dim 8
   data_size 5000
-  distribution uniform
-  seed 1
-gen_data_pts
-  distribution uniform
+read_data_pts test2-data.pts
   query_size 100
-  seed 2
-gen_query_pts
+read_query_pts test2-query.pts
   bucket_size 1
   near_neigh 3
   split_rule suggest
