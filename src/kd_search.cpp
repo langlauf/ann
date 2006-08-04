@@ -123,8 +123,8 @@ void ANNkd_tree::annkSearch(
 
 void ANNkd_split::ann_search(ANNdist box_dist)
 {
-										// check dist calc termination condition
-	if (ANNmaxPtsVisited && ANNptsVisited > ANNmaxPtsVisited) return;
+										// check dist calc term condition
+	if (ANNmaxPtsVisited != 0 && ANNptsVisited > ANNmaxPtsVisited) return;
 
 										// distance to cutting plane
 	ANNcoord cut_diff = ANNkdQ[cut_dim] - cut_val;

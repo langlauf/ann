@@ -33,10 +33,9 @@
 
 //----------------------------------------------------------------------
 //	More global variables
-//		These are active for the life of each call to Appx_Near_Neigh()
-//		or Appx_k_Near_Neigh().  They are set to save the number of
-//		variables that need to be passed among the various search
-//		procedures.
+//		These are active for the life of each call to annkSearch(). They
+//		are set to save the number of variables that need to be passed
+//		among the various search procedures.
 //----------------------------------------------------------------------
 
 extern int				ANNkdDim;		// dimension of space (static copy)

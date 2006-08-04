@@ -36,10 +36,15 @@ typedef int				PQKinfo;		// info field is int
 
 //----------------------------------------------------------------------
 //	Constants
+//		The NULL key value is used to initialize the priority queue, and
+//		so it should be larger than any valid distance, so that it will
+//		be replaced as legal distance values are inserted.  The NULL
+//		info value must be a nonvalid array index, we use ANN_NULL_IDX,
+//		which is guaranteed to be negative.
 //----------------------------------------------------------------------
 
 const PQKkey	PQ_NULL_KEY  =  ANN_DIST_INF;	// nonexistent key value
-const PQKinfo	PQ_NULL_INFO = -1;				// nonexistent info value
+const PQKinfo	PQ_NULL_INFO =  ANN_NULL_IDX;	// nonexistent info value
 
 //----------------------------------------------------------------------
 //	ANNmin_k
@@ -53,6 +58,9 @@ const PQKinfo	PQ_NULL_INFO = -1;				// nonexistent info value
 //		are made through standard insertion sort.  (This is quite
 //		inefficient, but current applications call for small values
 //		of k and relatively few insertions.)
+//		
+//		Note that the list contains k+1 entries, but the last entry
+//		is used as a simple placeholder and is otherwise ignored.
 //----------------------------------------------------------------------
 
 class ANNmin_k {

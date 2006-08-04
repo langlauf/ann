@@ -2,23 +2,20 @@
 # Top-level Makefile for ANN.
 #
 # ANN: Approximate Nearest Neighbors
-# Version: 1.0 (initial release)
+# Version: 1.1 05/03/05
 #-----------------------------------------------------------------------------
-# Copyright (c) 1997 University of Maryland and Sunil Arya and David Mount
-# All Rights Reserved.
+# Copyright (c) 1997-2005 University of Maryland and Sunil Arya and
+# David Mount.  All Rights Reserved.
 # 
-# This software and related documentation is part of the 
-# Approximate Nearest Neighbor Library (ANN).
+# This software and related documentation is part of the Approximate
+# Nearest Neighbor Library (ANN).  This software is provided under
+# the provisions of the Lesser GNU Public License (LGPL).  See the
+# file ../ReadMe.txt for further information.
 # 
-# Permission to use, copy, and distribute this software and its 
-# documentation is hereby granted free of charge, provided that 
-# (1) it is not a component of a commercial product, and 
-# (2) this notice appears in all copies of the software and
-#     related documentation. 
-# 
-# The University of Maryland and the authors make no representations
-# about the suitability or fitness of this software for any purpose.
-# It is provided "as is" without express or implied warranty.
+# The University of Maryland (U.M.) and the authors make no
+# representations about the suitability or fitness of this software for
+# any purpose.  It is provided "as is" without express or implied
+# warranty.
 #-----------------------------------------------------------------------------
 # Revision 0.1  09/06/97
 #	alpha release
@@ -26,6 +23,9 @@
 #	Minor changes to fix compilation errors on SGI systems.
 # Revision 1.0  04/01/05
 #	Initial release (finally!)
+#	Added linux-g++ target
+# Revision 1.1  05/03/05
+#	Added macosx-g++ target
 #-----------------------------------------------------------------------------
 
 #-----------------------------------------------------------------------------
@@ -42,11 +42,11 @@
 default:
 	@echo "Enter one of the following:"
 	@echo "  make linux-g++            for Linux and g++"
+	@echo "  make macosx-g++           for Mac OS X and g++"
 	@echo "  make sunos5               for Sun with SunOS 5.x"
 	@echo "  make sunos5-sl            for Sun with SunOS 5.x, make shared libs"
 	@echo "  make sunos5-g++           for Sun with SunOS 5.x and g++"
 	@echo "  make sunos5-g++-sl        for Sun with SunOS 5.x, g++, make shared libs"
-	@echo "  make sgi                  for SGI with CC"
 	@echo "  make clean                remove .o files"
 	@echo "  make realclean            remove .o, library and executable files"
 	@echo " "
@@ -56,7 +56,7 @@ default:
 #-----------------------------------------------------------------------------
 # main make entry point
 #-----------------------------------------------------------------------------
-alpha-g++ linux-g++ sgi sunos4 sunos4-g++ sunos5 sunos5-g++ sunos5-g++-sl authors-debug authors-perf:
+alpha-g++ macosx-g++ linux-g++ sgi sunos4 sunos4-g++ sunos5 sunos5-g++ sunos5-g++-sl authors-debug authors-perf:
 	cd src ; $(MAKE) $@
 	cd test ; $(MAKE) $@
 	cd sample ; $(MAKE) $@
@@ -91,17 +91,17 @@ realclean:
 #-----------------------------------------------------------------------------
 # Make distribution package (for use by authors only)
 #-----------------------------------------------------------------------------
-DISTR = ann_1.0
+DISTR = ann_1.1.1
 
 distribution: realclean 
-#	cd doc ; $(MAKE) 
-	cd .. ; mkdir $(DISTR)
+	cd .. ; mv -f $(DISTR) $(DISTR)-old; mkdir $(DISTR)
 	cp Copyright.txt ../$(DISTR)
 	cp License.txt ../$(DISTR)
 	cp Make-config ../$(DISTR)
 	cp Makefile ../$(DISTR)
 	cp ReadMe.txt ../$(DISTR)
 	cp -r MS_Win32 ../$(DISTR)
+#	cd ..; mv -f $(DISTR)_MS_Win32_bin $(DISTR)_MS_Win32_bin-old
 	cp -r MS_Win32_bin ../$(DISTR)_MS_Win32_bin
 	cp -r bin ../$(DISTR)
 	cp -r include ../$(DISTR)

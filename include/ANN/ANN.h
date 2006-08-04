@@ -1,34 +1,33 @@
 //----------------------------------------------------------------------
 // File:			ANN.h
 // Programmer:		Sunil Arya and David Mount
-// Last modified:	03/19/05 (Release 1.0)
+// Last modified:	05/03/05 (Release 1.1)
 // Description:		Basic include file for approximate nearest
 //					neighbor searching.
 //----------------------------------------------------------------------
 // Copyright (c) 1997-2005 University of Maryland and Sunil Arya and
 // David Mount.  All Rights Reserved.
-//
-// This software and related documentation is part of the 
-// Approximate Nearest Neighbor Library (ANN).
 // 
-// Permission to use, copy, and distribute this software and its 
-// documentation is hereby granted free of charge, provided that 
-// (1) it is not a component of a commercial product, and 
-// (2) this notice appears in all copies of the software and
-//   related documentation. 
+// This software and related documentation is part of the Approximate
+// Nearest Neighbor Library (ANN).  This software is provided under
+// the provisions of the Lesser GNU Public License (LGPL).  See the
+// file ../ReadMe.txt for further information.
 // 
-// The University of Maryland (U.M.) and the authors make no representations
-// about the suitability or fitness of this software for any purpose.  It is
-// provided "as is" without express or implied warranty.
+// The University of Maryland (U.M.) and the authors make no
+// representations about the suitability or fitness of this software for
+// any purpose.  It is provided "as is" without express or implied
+// warranty.
 //----------------------------------------------------------------------
-//		History:
-//		Revision 0.1  03/04/98
-//			Initial release
-//		Revision 1.0  04/01/05
-//			Added copyright and revision information
-//			Added ANNcoordPrec for coordinate precision.
-//			Added methods theDim, nPoints, maxPoints, thePoints to ANNpointSet.
-//			Cleaned up C++ structure for modern compilers
+// History:
+//	Revision 0.1  03/04/98
+//		Initial release
+//	Revision 1.0  04/01/05
+//		Added copyright and revision information
+//		Added ANNcoordPrec for coordinate precision.
+//		Added methods theDim, nPoints, maxPoints, thePoints to ANNpointSet.
+//		Cleaned up C++ structure for modern compilers
+//	Revision 1.1  05/03/05
+//		Added fixed-radius k-NN searching
 //----------------------------------------------------------------------
 
 //----------------------------------------------------------------------
@@ -115,10 +114,10 @@
   const double ANN_DBL_MAX = DBL_MAX;
 #endif
 
-#define ANNversion 		"1.0"			// ANN version and information
+#define ANNversion 		"1.1.1"			// ANN version and information
 #define ANNversionCmt	""
 #define ANNcopyright	"David M. Mount and Sunil Arya"
-#define ANNlatestRev	"Mar 1, 2005"
+#define ANNlatestRev	"Aug 4, 2006"
 
 //----------------------------------------------------------------------
 //	ANNbool
@@ -162,9 +161,15 @@ typedef double	ANNdist;				// distance data type
 //		returned as an integer index into this array.  To make it
 //		clearer when this is happening, we define the integer type
 //		ANNidx.	 Indexing starts from 0.
+//		
+//		For fixed-radius near neighbor searching, it is possible that
+//		there are not k nearest neighbors within the search radius.  To
+//		indicate this, the algorithm returns ANN_NULL_IDX as its result.
+//		It should be distinguishable from any valid array index.
 //----------------------------------------------------------------------
 
 typedef int		ANNidx;					// point index
+const ANNidx	ANN_NULL_IDX = -1;		// a NULL point index
 
 //----------------------------------------------------------------------
 //	Infinite distance:
@@ -363,10 +368,10 @@ const ANNbool	ANN_ALLOW_SELF_MATCH	= ANNtrue;
 //		when returning the results of k-nearest neighbor queries.
 //----------------------------------------------------------------------
 
-typedef ANNcoord *ANNpoint;			// a point
-typedef ANNpoint *ANNpointArray;	// an array of points 
-typedef ANNdist  *ANNdistArray;		// an array of distances 
-typedef ANNidx   *ANNidxArray;		// an array of point indices
+typedef ANNcoord* ANNpoint;			// a point
+typedef ANNpoint* ANNpointArray;	// an array of points 
+typedef ANNdist*  ANNdistArray;		// an array of distances 
+typedef ANNidx*   ANNidxArray;		// an array of point indices
 
 //----------------------------------------------------------------------
 //	Basic point and array utilities:
@@ -429,19 +434,19 @@ DLL_API ANNpoint annCopyPt(
 	ANNpoint		source);	// point to copy
 
 //----------------------------------------------------------------------
-//	Overall structure:
-//		ANN supports a number of different data structures for
-//		approximate and exact nearest neighbor searching.  These are:
+//Overall structure: ANN supports a number of different data structures
+//for approximate and exact nearest neighbor searching.  These are:
 //
 //		ANNbruteForce	A simple brute-force search structure.
-//		ANNkd_tree		A kd-tree tree search structure.
-//		ANNbd_tree		A bd-tree tree search structure (a kd-tree
-//						with shrink capabilities).
+//		ANNkd_tree		A kd-tree tree search structure.  ANNbd_tree
+//		A bd-tree tree search structure (a kd-tree with shrink
+//		capabilities).
 //
 //		At a minimum, each of these data structures support k-nearest
-//		neighbor queries.  The nearest neighbor query (annkSearch)
+//		neighbor queries.  The nearest neighbor query, annkSearch,
 //		returns an integer identifier and the distance to the nearest
-//		neighbor(s).
+//		neighbor(s) and annRangeSearch returns the nearest points that
+//		lie within a given query ball.
 //
 //		Each structure is built by invoking the appropriate constructor
 //		and passing it (at a minimum) the array of points, the total
@@ -461,6 +466,19 @@ DLL_API ANNpoint annCopyPt(
 //		(within the point array) of the nearest neighbors and the other
 //		(dd) contains the squared distances to these nearest neighbors.
 //
+//		The search algorithm, annkFRSearch, is a fixed-radius kNN
+//		search.  In addition to a query point, it is given a (squared)
+//		radius bound.  (This is done for consistency, because the search
+//		returns distances as squared quantities.) It does two things.
+//		First, it computes the k nearest neighbors within the radius
+//		bound, and second, it returns the total number of points lying
+//		within the radius bound. It is permitted to set k = 0, in which
+//		case it effectively answers a range counting query.  If the
+//		error bound epsilon is positive, then the search is approximate
+//		in the sense that it is free to ignore any point that lies
+//		outside a ball of radius r/(1+epsilon), where r is the given
+//		(unsquared) radius bound.
+//
 //		The generic object from which all the search structures are
 //		dervied is given below.  It is a virtual object, and is useless
 //		by itself.
@@ -473,8 +491,17 @@ public:
 	virtual void annkSearch(			// approx k near neighbor search
 		ANNpoint		q,				// query point
 		int				k,				// number of near neighbors to return
-		ANNidxArray		nn_idx,			// nearest neighbor array (returned)
-		ANNdistArray	dd,				// dist to near neighbors (returned)
+		ANNidxArray		nn_idx,			// nearest neighbor array (modified)
+		ANNdistArray	dd,				// dist to near neighbors (modified)
+		double			eps=0.0			// error bound
+		) = 0;							// pure virtual (defined elsewhere)
+
+	virtual int annkFRSearch(			// approx fixed-radius kNN search
+		ANNpoint		q,				// query point
+		ANNdist			sqRad,			// squared radius
+		int				k = 0,			// number of near neighbors to return
+		ANNidxArray		nn_idx = NULL,	// nearest neighbor array (modified)
+		ANNdistArray	dd = NULL,		// dist to near neighbors (modified)
 		double			eps=0.0			// error bound
 		) = 0;							// pure virtual (defined elsewhere)
 
@@ -519,8 +546,16 @@ public:
 	void annkSearch(					// approx k near neighbor search
 		ANNpoint		q,				// query point
 		int				k,				// number of near neighbors to return
-		ANNidxArray		nn_idx,			// nearest neighbor array (returned)
-		ANNdistArray	dd,				// dist to near neighbors (returned)
+		ANNidxArray		nn_idx,			// nearest neighbor array (modified)
+		ANNdistArray	dd,				// dist to near neighbors (modified)
+		double			eps=0.0);		// error bound
+
+	int annkFRSearch(					// approx fixed-radius kNN search
+		ANNpoint		q,				// query point
+		ANNdist			sqRad,			// squared radius
+		int				k = 0,			// number of near neighbors to return
+		ANNidxArray		nn_idx = NULL,	// nearest neighbor array (modified)
+		ANNdistArray	dd = NULL,		// dist to near neighbors (modified)
 		double			eps=0.0);		// error bound
 
 	int theDim()						// return dimension of space
@@ -661,77 +696,85 @@ const int ANN_N_SHRINK_RULES	= 4;	// number of shrink rules
 //----------------------------------------------------------------------
 class ANNkdStats;				// stats on kd-tree
 class ANNkd_node;				// generic node in a kd-tree
-typedef ANNkd_node	*ANNkd_ptr;	// pointer to a kd-tree node
+typedef ANNkd_node*	ANNkd_ptr;	// pointer to a kd-tree node
 
 class DLL_API ANNkd_tree: public ANNpointSet {
 protected:
-	int				dim;		// dimension of space
-	int				n_pts;		// number of points in tree
-	int				bkt_size;	// bucket size
-	ANNpointArray	pts;		// the points
-	ANNidxArray		pidx;		// point indices (to pts array)
-	ANNkd_ptr		root;		// root of kd-tree
-	ANNpoint		bnd_box_lo;	// bounding box low point
-	ANNpoint		bnd_box_hi;	// bounding box high point
+	int				dim;				// dimension of space
+	int				n_pts;				// number of points in tree
+	int				bkt_size;			// bucket size
+	ANNpointArray	pts;				// the points
+	ANNidxArray		pidx;				// point indices (to pts array)
+	ANNkd_ptr		root;				// root of kd-tree
+	ANNpoint		bnd_box_lo;			// bounding box low point
+	ANNpoint		bnd_box_hi;			// bounding box high point
 
-	void SkeletonTree(				// construct skeleton tree
-		int				n,			// number of points
-		int				dd,			// dimension
-		int				bs,			// bucket size
-		ANNpointArray pa = NULL,	// point array (optional)
-		ANNidxArray pi = NULL);		// point indices (optional)
+	void SkeletonTree(					// construct skeleton tree
+		int				n,				// number of points
+		int				dd,				// dimension
+		int				bs,				// bucket size
+		ANNpointArray pa = NULL,		// point array (optional)
+		ANNidxArray pi = NULL);			// point indices (optional)
 
 public:
-	ANNkd_tree(						// build skeleton tree
-		int				n = 0,		// number of points
-		int				dd = 0,		// dimension
-		int				bs = 1);	// bucket size
+	ANNkd_tree(							// build skeleton tree
+		int				n = 0,			// number of points
+		int				dd = 0,			// dimension
+		int				bs = 1);		// bucket size
 
-	ANNkd_tree(						// build from point array
-		ANNpointArray	pa,			// point array
-		int				n,			// number of points
-		int				dd,			// dimension
-		int				bs = 1,		// bucket size
+	ANNkd_tree(							// build from point array
+		ANNpointArray	pa,				// point array
+		int				n,				// number of points
+		int				dd,				// dimension
+		int				bs = 1,			// bucket size
 		ANNsplitRule	split = ANN_KD_SUGGEST);	// splitting method
 
-	ANNkd_tree(						// build from dump file
-		std::istream	&in);		// input stream for dump file
+	ANNkd_tree(							// build from dump file
+		std::istream&	in);			// input stream for dump file
 
-	~ANNkd_tree();					// tree destructor
+	~ANNkd_tree();						// tree destructor
 
-	void annkSearch(				// approx k near neighbor search
-		ANNpoint		q,			// query point
-		int				k,			// number of near neighbors to return
-		ANNidxArray		nn_idx,		// nearest neighbor array (returned)
-		ANNdistArray	dd,			// dist to near neighbors (returned)
-		double			eps=0.0);	// error bound
+	void annkSearch(					// approx k near neighbor search
+		ANNpoint		q,				// query point
+		int				k,				// number of near neighbors to return
+		ANNidxArray		nn_idx,			// nearest neighbor array (modified)
+		ANNdistArray	dd,				// dist to near neighbors (modified)
+		double			eps=0.0);		// error bound
 
-	void annkPriSearch( 			// priority k near neighbor search
-		ANNpoint		q,			// query point
-		int				k,			// number of near neighbors to return
-		ANNidxArray		nn_idx,		// nearest neighbor array (returned)
-		ANNdistArray	dd,			// dist to near neighbors (returned)
-		double			eps=0.0);	// error bound
+	void annkPriSearch( 				// priority k near neighbor search
+		ANNpoint		q,				// query point
+		int				k,				// number of near neighbors to return
+		ANNidxArray		nn_idx,			// nearest neighbor array (modified)
+		ANNdistArray	dd,				// dist to near neighbors (modified)
+		double			eps=0.0);		// error bound
 
-	int theDim()					// return dimension of space
+	int annkFRSearch(					// approx fixed-radius kNN search
+		ANNpoint		q,				// the query point
+		ANNdist			sqRad,			// squared radius of query ball
+		int				k,				// number of neighbors to return
+		ANNidxArray		nn_idx = NULL,	// nearest neighbor array (modified)
+		ANNdistArray	dd = NULL,		// dist to near neighbors (modified)
+		double			eps=0.0);		// error bound
+
+	int theDim()						// return dimension of space
 		{ return dim; }
 
-	int nPoints()					// return number of points
+	int nPoints()						// return number of points
 		{ return n_pts; }
 
-	ANNpointArray thePoints()		// return pointer to points
+	ANNpointArray thePoints()			// return pointer to points
 		{  return pts;  }
 
-	virtual void Print(				// print the tree (for debugging)
-		ANNbool			with_pts,	// print points as well?
-		std::ostream	&out);		// output stream
+	virtual void Print(					// print the tree (for debugging)
+		ANNbool			with_pts,		// print points as well?
+		std::ostream&	out);			// output stream
 
-	virtual void Dump(				// dump entire tree
-		ANNbool			with_pts,	// print points as well?
-		std::ostream	&out);		// output stream
+	virtual void Dump(					// dump entire tree
+		ANNbool			with_pts,		// print points as well?
+		std::ostream&	out);			// output stream
 								
-	virtual void getStats(			// compute tree statistics
-		ANNkdStats		&st);		// the statistics (returned)
+	virtual void getStats(				// compute tree statistics
+		ANNkdStats&		st);			// the statistics (modified)
 };								
 
 //----------------------------------------------------------------------
@@ -749,22 +792,22 @@ public:
 
 class DLL_API ANNbd_tree: public ANNkd_tree {
 public:
-	ANNbd_tree(						// build skeleton tree
-		int				n,			// number of points
-		int				dd,			// dimension
-		int				bs = 1)		// bucket size
-		: ANNkd_tree(n, dd, bs) {}	// build base kd-tree
+	ANNbd_tree(							// build skeleton tree
+		int				n,				// number of points
+		int				dd,				// dimension
+		int				bs = 1)			// bucket size
+		: ANNkd_tree(n, dd, bs) {}		// build base kd-tree
 
-	ANNbd_tree(						// build from point array
-		ANNpointArray	pa,			// point array
-		int				n,			// number of points
-		int				dd,			// dimension
-		int				bs = 1,		// bucket size
+	ANNbd_tree(							// build from point array
+		ANNpointArray	pa,				// point array
+		int				n,				// number of points
+		int				dd,				// dimension
+		int				bs = 1,			// bucket size
 		ANNsplitRule	split  = ANN_KD_SUGGEST,	// splitting rule
 		ANNshrinkRule	shrink = ANN_BD_SUGGEST);	// shrinking rule
 
-	ANNbd_tree(						// build from dump file
-		std::istream		&in);			// input stream for dump file
+	ANNbd_tree(							// build from dump file
+		std::istream&	in);			// input stream for dump file
 };
 
 //----------------------------------------------------------------------

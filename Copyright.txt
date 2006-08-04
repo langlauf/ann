@@ -1,6 +1,6 @@
 ANN: Approximate Nearest Neighbors
-Version: 1.0
-Release Date: April 1, 2005
+Version: 1.1.1
+Release Date: Aug 4, 2006
 ----------------------------------------------------------------------------
 Copyright (c) 1997-2005 University of Maryland and Sunil Arya and David
 Mount All Rights Reserved.

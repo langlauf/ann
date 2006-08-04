@@ -20,6 +20,8 @@
 #	Revision 1.0  04/01/05
 #		Renamed files from .cc to .cpp for Microsoft Visual C++
 #		Added kd_dump.cpp
+#	Revision 1.1  05/03/05
+#		Added kd_fix_rad_search.cpp and bd_fix_rad_search.cpp
 #----------------------------------------------------------------------
 
 #-----------------------------------------------------------------------------
@@ -33,11 +35,12 @@ INCDIR	= $(BASEDIR)/include
 LIBDIR	= $(BASEDIR)/lib
 
 SOURCES = ANN.cpp brute.cpp kd_tree.cpp kd_util.cpp kd_split.cpp \
-	kd_dump.cpp kd_search.cpp kd_pr_search.cpp bd_tree.cpp \
-	bd_search.cpp bd_pr_search.cpp perf.cpp
+	kd_dump.cpp kd_search.cpp kd_pr_search.cpp kd_fix_rad_search.cpp \
+	bd_tree.cpp bd_search.cpp bd_pr_search.cpp bd_fix_rad_search.cpp \
+	perf.cpp
 
 HEADERS = kd_tree.h kd_split.h kd_util.h kd_search.h \
-	kd_pr_search.h perf.h pr_queue.h pr_queue_k.h
+	kd_pr_search.h kd_fix_rad_search.h perf.h pr_queue.h pr_queue_k.h
 
 OBJECTS = $(SOURCES:.cpp=.o)
 
@@ -80,6 +83,9 @@ kd_search.o: kd_search.cpp
 kd_pr_search.o: kd_pr_search.cpp
 	$(C++) -c -I$(INCDIR) $(CFLAGS) kd_pr_search.cpp
 
+kd_fix_rad_search.o: kd_fix_rad_search.cpp
+	$(C++) -c -I$(INCDIR) $(CFLAGS) kd_fix_rad_search.cpp
+
 kd_dump.o: kd_dump.cpp
 	$(C++) -c -I$(INCDIR) $(CFLAGS) kd_dump.cpp
 
@@ -91,6 +97,9 @@ bd_search.o: bd_search.cpp
 
 bd_pr_search.o: bd_pr_search.cpp
 	$(C++) -c -I$(INCDIR) $(CFLAGS) bd_pr_search.cpp
+
+bd_fix_rad_search.o: bd_fix_rad_search.cpp
+	$(C++) -c -I$(INCDIR) $(CFLAGS) bd_fix_rad_search.cpp
 
 perf.o: perf.cpp
 	$(C++) -c -I$(INCDIR) $(CFLAGS) perf.cpp

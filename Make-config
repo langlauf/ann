@@ -2,7 +2,7 @@
 # Makefile variations depending on different configurations
 #
 # ANN: Approximate Nearest Neighbors
-# Version: 0.1 (Beta release)
+# Version: 1.1 05/03/05
 #
 # (This Make-config structure is based on the one used by Mesa by Brian
 # Paul.  If you succeed in porting ANN to your favorite system, please
@@ -16,7 +16,7 @@
 # ANNLIB	The name of the ANN library file (usually libANN.a)
 # C++		The C compiler (usually CC or g++)
 # MAKELIB	The command and flags to make a library file (usually
-#		    "ar ...")
+#			"ar ...")
 # CFLAGS	Flags to C++ compiler
 # RANLIB	For "ranlib" = use ranlib, "true" = don't use ranlib
 #----------------------------------------------------------------------
@@ -28,6 +28,9 @@
 #	Modifications for alpha with cxx
 #	Removed CFLAGS2 options (just write your own)
 #	Removed -DUSING...  (Compilers are pretty consistent these days)
+#	Added linux-g++ target
+# Revision 1.1  05/03/05
+#	Added macosx-g++ target
 #-----------------------------------------------------------------------------
 
 #-----------------------------------------------------------------------------
@@ -73,6 +76,15 @@ linux-g++:
 	"MAKELIB = ar ruv" \
 	"RANLIB = true"
 
+#					Mac OS X using g++
+macosx-g++:
+	$(MAKE) targets \
+	"ANNLIB = libANN.a" \
+	"C++ = g++" \
+	"CFLAGS = -O3" \
+	"MAKELIB = libtool -static -o " \
+	"RANLIB = true"
+
 #					SunOS5
 sunos5:
 	$(MAKE) targets \
@@ -109,12 +121,16 @@ sunos5-g++-sl:
 	"MAKELIB = ld -G -o" \
 	"RANLIB = true"
 
+#-----------------------------------------------------------------------
+# Used for the author's testing and debugging only
+#-----------------------------------------------------------------------
+
 #					debugging version for authors
 authors-debug:
 	$(MAKE) targets \
 	"ANNLIB = libANN.a" \
 	"C++ = g++" \
-	"CFLAGS = -g -Wall" \
+	"CFLAGS = -g -DANN_PERF -Wall" \
 	"MAKELIB = ar ruv" \
 	"RANLIB = true"
 

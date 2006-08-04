@@ -2,7 +2,7 @@
 // File:			brute.cpp
 // Programmer:		Sunil Arya and David Mount
 // Description:		Brute-force nearest neighbors
-// Last modified:	01/04/05 (Version 1.0)
+// Last modified:	05/03/05 (Version 1.1)
 //----------------------------------------------------------------------
 // Copyright (c) 1997-2005 University of Maryland and Sunil Arya and
 // David Mount.  All Rights Reserved.
@@ -20,6 +20,8 @@
 // History:
 //	Revision 0.1  03/04/98
 //		Initial release
+//	Revision 1.1  05/03/05
+//		Added fixed-radius kNN search
 //----------------------------------------------------------------------
 
 #include <ANN/ANNx.h>					// all ANN includes
@@ -33,6 +35,10 @@
 //
 //		If ANN_ALLOW_SELF_MATCH is ANNfalse then data points at distance
 //		zero are not considered.
+//
+//		Note that the error bound eps is passed in, but it is ignored.
+//		These routines compute exact nearest neighbors (which is needed
+//		for validation purposes in ann_test.cpp).
 //----------------------------------------------------------------------
 
 ANNbruteForce::ANNbruteForce(			// constructor from point array
@@ -53,7 +59,6 @@ void ANNbruteForce::annkSearch(			// approx k near neighbor search
 	double				eps)			// error bound (ignored)
 {
 	ANNmin_k mk(k);						// construct a k-limited priority queue
-	ANNdist  dist;						// distance to point
 	int i;
 
 	if (k > n_pts) {					// too many near neighbors?
@@ -61,12 +66,44 @@ void ANNbruteForce::annkSearch(			// approx k near neighbor search
 	}
 										// run every point through queue
 	for (i = 0; i < n_pts; i++) {
-		dist = annDist(dim, pts[i], q); // compute distance to point
-		if (ANN_ALLOW_SELF_MATCH || dist != 0)
-			mk.insert(dist, i);
+										// compute distance to point
+		ANNdist sqDist = annDist(dim, pts[i], q);
+		if (ANN_ALLOW_SELF_MATCH || sqDist != 0)
+			mk.insert(sqDist, i);
 	}
 	for (i = 0; i < k; i++) {			// extract the k closest points
 		dd[i] = mk.ith_smallest_key(i);
 		nn_idx[i] = mk.ith_smallest_info(i);
 	}
+}
+
+int ANNbruteForce::annkFRSearch(		// approx fixed-radius kNN search
+	ANNpoint			q,				// query point
+	ANNdist				sqRad,			// squared radius
+	int					k,				// number of near neighbors to return
+	ANNidxArray			nn_idx,			// nearest neighbor array (returned)
+	ANNdistArray		dd,				// dist to near neighbors (returned)
+	double				eps)			// error bound
+{
+	ANNmin_k mk(k);						// construct a k-limited priority queue
+	int i;
+	int pts_in_range = 0;				// number of points in query range
+										// run every point through queue
+	for (i = 0; i < n_pts; i++) {
+										// compute distance to point
+		ANNdist sqDist = annDist(dim, pts[i], q);
+		if (sqDist <= sqRad &&			// within radius bound
+			(ANN_ALLOW_SELF_MATCH || sqDist != 0)) { // ...and no self match
+			mk.insert(sqDist, i);
+			pts_in_range++;
+		}
+	}
+	for (i = 0; i < k; i++) {			// extract the k closest points
+		if (dd != NULL)
+			dd[i] = mk.ith_smallest_key(i);
+		if (nn_idx != NULL)
+			nn_idx[i] = mk.ith_smallest_info(i);
+	}
+
+	return pts_in_range;
 }

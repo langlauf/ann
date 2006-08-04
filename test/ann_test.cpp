@@ -2,7 +2,7 @@
 //	File:			ann_test.cpp
 //	Programmer:		Sunil Arya and David Mount
 //	Description:	test program for ANN (approximate nearest neighbors)
-// Last modified:	01/04/05 (Version 1.0)
+//  Last modified:	08/04/06 (Version 1.1.1)
 //----------------------------------------------------------------------
 // Copyright (c) 1997-2005 University of Maryland and Sunil Arya and
 // David Mount.  All Rights Reserved.
@@ -28,6 +28,10 @@
 //		Fixed order of fair and midpt in split_table
 //		Added dump/load operations
 //		Cleaned up C++ for modern compilers
+//	Revision 1.1  05/03/05
+//		Added fixed radius kNN search
+//	Revision 1.1.1 08/04/06
+//		Added planted distribution
 //----------------------------------------------------------------------
 
 #include <ctime>						// clock
@@ -159,10 +163,10 @@ using namespace std;					// make std:: available
 //								maximum number of points for storage
 //								allocation. Default = 100.
 //		query_size <int>		Same as data_size for query points.
-//		std_dev <float>			Standard deviation (used in gauss, and
-//								clustered distributions).  This is the
-//								"small" distribution for clus_ellipsoids.
-//								Default = 1.
+//		std_dev <float>			Standard deviation (used in gauss,
+//								planted, and clustered distributions).
+//								This is the "small" distribution for
+//								clus_ellipsoids.  Default = 1.
 //		std_dev_lo <float>		Low and high standard deviations (used in
 //		std_dev_hi <float>		clus_ellipsoids).  Default = 1.
 //		corr_coef <float>		Correlation coefficient (used in co-gauss
@@ -188,7 +192,8 @@ using namespace std;					// make std:: available
 //									clus_gauss	= clustered Gaussian
 //									clus_orth_flats = clusters of orth flats
 //									clus_ellipsoids = clusters of ellipsoids
-//								See the file rand.cc for further information.
+//									planted		= planted distribution
+//								See the file rand.cpp for further information.
 //
 // Options affecting nearest neighbor search:
 // ------------------------------------------
@@ -198,6 +203,16 @@ using namespace std;					// make std:: available
 //								terminating.  (Used in applications where
 //								real-time performance is important.)
 //								(Default = 0, which means no limit.)
+//		radius_bound <float>	Sets an upper bound on the nearest
+//								neighbor search radius.  If the bound is
+//								positive, then fixed-radius nearest
+//								neighbor searching is performed, and the
+//								count of the number of points in the
+//								range is returned.  If the bound is
+//								zero, then standard search is used.
+//								This can only be used with standard, not
+//								priority, search.  (Default = 0, which
+//								means standard search.)
 //
 // Options affection general program behavior:
 // -------------------------------------------
@@ -308,6 +323,7 @@ typedef enum {					// distributions
 		CLUS_GAUSS,						// clustered Gaussian
 		CLUS_ORTH_FLATS,				// clustered on orthog flats
 		CLUS_ELLIPSOIDS,				// clustered on ellipsoids
+		PLANTED,						// planted distribution
 		N_DISTRIBS}
 		Distrib;
 
@@ -319,7 +335,8 @@ const char distr_table[N_DISTRIBS][STRING_LEN] = {
 		"co_laplace",					// CO_LAPLACE
 		"clus_gauss",					// CLUS_GAUSS
 		"clus_orth_flats",				// CLUS_ORTH_FLATS
-		"clus_ellipsoids"};				// CLUS_ELLIPSOIS
+		"clus_ellipsoids",				// CLUS_ELLIPSOIS
+		"planted"};						// PLANTED
 
 //------------------------------------------------------------------------
 //	Splitting rules for kd-trees (see ANN.h for types)
@@ -333,8 +350,6 @@ const char split_table[N_SPLIT_RULES][STRING_LEN] = {
 		"sl_midpt",						// sliding midpt split
 		"sl_fair",						// sliding fair split
 		"suggest"};						// authors' choice for best
-
-// TODO: Swap fair<-->midpt
 
 //------------------------------------------------------------------------
 //	Shrinking rules for bd-trees (see ANN.h for types)
@@ -399,7 +414,9 @@ void generatePts(						// generate data/query points
 	ANNpointArray		&pa,			// point array (returned)
 	int					n,				// number of points
 	PtType				type,			// point type
-	ANNbool				new_clust);		// new cluster centers desired?
+	ANNbool				new_clust,		// new cluster centers desired?
+	ANNpointArray		src = NULL,		// source array (for PLANTED)
+	int					n_src = 0);		// source size (for PLANTED)
 
 void readPts(							// read data/query points from file
 	ANNpointArray		&pa,			// point array (returned)
@@ -432,6 +449,7 @@ const int		def_bucket_size = 1;			// def bucket size
 const double	def_epsilon		= 0.0;			// def error bound
 const int		def_near_neigh	= 1;			// def number of near neighbors
 const int		def_max_visit	= 0;			// def number of points visited
+const int		def_rad_bound	= 0;			// def radius bound
 												// def number of true nn's
 const int		def_true_nn		= def_near_neigh + extra_nn;
 const int		def_seed		= 0;			// def seed for random numbers
@@ -462,6 +480,7 @@ int				bucket_size;			// bucket size
 double			epsilon;				// error bound
 int				near_neigh;				// number of near neighbors
 int				max_pts_visit;			// max number of points to visit
+double			radius_bound;			// maximum radius search bound
 int				true_nn;				// number of true nn's
 ANNbool			validate;				// validation flag
 StatLev			stats;					// statistics output level
@@ -479,8 +498,14 @@ ANNshrinkRule	shrink;					// shrinking rule
 //										nearest neighbor searching.
 //		apx_nn_idx, apx_dists			Record approximate near neighbor
 //										indices and distances
+//		apx_pts_in_range				Counts of the number of points in
+//										the in approx range, for fixed-
+//										radius NN searching.
 //		true_nn_idx, true_dists			Record true near neighbor
 //										indices and distances
+//		min_pts_in_range, max_...		Min and max counts of the number
+//										of points in the in approximate
+//										range.
 //		valid_dirty						To avoid repeated validation,
 //										we only validate query results
 //										once.  This validation becomes
@@ -503,11 +528,14 @@ ANNshrinkRule	shrink;					// shrinking rule
 
 ANNpointArray	data_pts;				// data points
 ANNpointArray	query_pts;				// query points
-ANNbd_tree		*the_tree;				// kd- or bd-tree search structure
+ANNbd_tree*		the_tree;				// kd- or bd-tree search structure
 ANNidxArray		apx_nn_idx;				// storage for near neighbor indices
 ANNdistArray	apx_dists;				// storage for near neighbor distances
+int*			apx_pts_in_range;		// storage for no. of points in range
 ANNidxArray		true_nn_idx;			// true near neighbor indices
 ANNdistArray	true_dists;				// true near neighbor distances
+int*			min_pts_in_range;		// min points in approx range
+int*			max_pts_in_range;		// max points in approx range
 
 ANNbool			valid_dirty;			// validation is no longer valid
 
@@ -532,6 +560,7 @@ void initGlobals()
 	epsilon				= def_epsilon;
 	near_neigh			= def_near_neigh;
 	max_pts_visit		= def_max_visit;
+	radius_bound		= def_rad_bound;
 	true_nn				= def_true_nn;
 	validate			= def_validate;
 	stats				= def_stats;
@@ -539,13 +568,16 @@ void initGlobals()
 	shrink				= def_shrink;
 	annIdum				= -def_seed;			// init. global seed for ran0()
 
-	data_pts	= NULL;							// initialize storage pointers
-	query_pts	= NULL;
-	the_tree	= NULL;
-	apx_nn_idx	= NULL;
-	apx_dists	= NULL;
-	true_nn_idx = NULL;
-	true_dists	= NULL;
+	data_pts			= NULL;					// initialize storage pointers
+	query_pts			= NULL;
+	the_tree			= NULL;
+	apx_nn_idx			= NULL;
+	apx_dists			= NULL;
+	apx_pts_in_range	= NULL;
+	true_nn_idx 		= NULL;
+	true_dists			= NULL;
+	min_pts_in_range	= NULL;
+	max_pts_in_range	= NULL;
 
 	valid_dirty			= ANNtrue;				// (validation must be done)
 }
@@ -649,6 +681,11 @@ int main(int argc, char** argv)
 		}
 		else if (!strcmp(directive,"max_pts_visit")) {
 			cin >> max_pts_visit;
+			valid_dirty = ANNtrue;				// validation must be redone
+		}
+		else if (!strcmp(directive,"radius_bound")) {
+			cin >> radius_bound;
+			valid_dirty = ANNtrue;				// validation must be redone
 		}
 		else if (!strcmp(directive,"near_neigh")) {
 			cin >> near_neigh;
@@ -744,6 +781,9 @@ int main(int argc, char** argv)
 		//	gen_data_pts operation
 		//----------------------------------------------------------------
 		else if (!strcmp(directive,"gen_data_pts")) {
+			if (distr == PLANTED) {				// planted distribution
+				Error("Cannot use planted distribution for data points", ANNabort);
+			}
 			generatePts(						// generate data points
 				data_pts,						// data points
 				data_size,						// data size
@@ -754,13 +794,30 @@ int main(int argc, char** argv)
 		}
 		//----------------------------------------------------------------
 		//	gen_query_pts operation
+		//		If the distribution is PLANTED, then the query points
+		//		are planted near the data points (which must already be
+		//		generated).
 		//----------------------------------------------------------------
 		else if (!strcmp(directive,"gen_query_pts")) {
-			generatePts(						// generate query points
-				query_pts,						// point array
-				query_size,						// number of query points
-				QUERY,							// query points
-				new_clust);						// new clusters flag
+			if (distr == PLANTED) {				// planted distribution
+				if (data_pts == NULL) {
+					Error("Must generate data points before query points for planted distribution", ANNabort);
+				}
+				generatePts(					// generate query points
+					query_pts,					// point array
+					query_size,					// number of query points
+					QUERY,						// query points
+					new_clust,					// new clusters flag
+					data_pts,					// plant around data pts
+					data_size);
+			}
+			else {								// all other distributions
+				generatePts(					// generate query points
+					query_pts,					// point array
+					query_size,					// number of query points
+					QUERY,						// query points
+					new_clust);					// new clusters flag
+			}
 			valid_dirty = ANNtrue;				// validation must be redone
 			new_clust = ANNfalse;				// reset flag
 		}
@@ -913,6 +970,12 @@ int main(int argc, char** argv)
 		//			procedure on the query points.  Print nearest neighbor
 		//			if requested.
 		//		**	print final summaries
+		//
+		//	The approach for processing multiple nearest neighbors is
+		//	pretty crude.  We allocate an array whose size is the
+		//	product of the total number of queries times the number of
+		//	nearest neighbors (k), and then use each k consecutive
+		//	entries to store the results of each query.
 		//----------------------------------------------------------------
 		else if (!strcmp(directive,"run_queries")) {
 
@@ -950,11 +1013,13 @@ int main(int argc, char** argv)
 
 			clock0 = clock();					// start time
 												// deallocate existing storage
-			if (apx_nn_idx != NULL) delete [] apx_nn_idx;
-			if (apx_dists  != NULL) delete [] apx_dists;
+			if (apx_nn_idx	 	 != NULL) delete [] apx_nn_idx;
+			if (apx_dists		 != NULL) delete [] apx_dists;
+			if (apx_pts_in_range != NULL) delete [] apx_pts_in_range;
 												// allocate apx answer storage
-			apx_nn_idx = new int[near_neigh*query_size];
+			apx_nn_idx = new ANNidx[near_neigh*query_size];
 			apx_dists  = new ANNdist[near_neigh*query_size];
+			apx_pts_in_range = new int[query_size];
 
 			annMaxPtsVisit(max_pts_visit);		// set max points to visit
 
@@ -962,37 +1027,54 @@ int main(int argc, char** argv)
 			//	Run the queries
 			//------------------------------------------------------------
 												// pointers for current query
-			int			 *curr_nn_idx = apx_nn_idx;
+			ANNidxArray	  curr_nn_idx = apx_nn_idx;
 			ANNdistArray  curr_dists  = apx_dists;
 
 			for (int i = 0; i < query_size; i++) {
 				#ifdef ANN_PERF
-					annResetCounts();				// reset counters
+					annResetCounts();			// reset counters
 				#endif
+				apx_pts_in_range[i] = 0;
 
-				switch (method) {
-				case STANDARD:					// standard search
-					the_tree->annkSearch(
+				if (radius_bound == 0) {		// no radius bound
+					if (method == STANDARD) {
+						the_tree->annkSearch(
+							query_pts[i],		// query point
+							near_neigh,			// number of near neighbors
+							curr_nn_idx,		// nearest neighbors (returned)
+							curr_dists,			// distance (returned)
+							epsilon);			// error bound
+					}
+					else if (method == PRIORITY) {
+						the_tree->annkPriSearch(
+							query_pts[i],		// query point
+							near_neigh,			// number of near neighbors
+							curr_nn_idx,		// nearest neighbors (returned)
+							curr_dists,			// distance (returned)
+							epsilon);			// error bound
+					}
+					else {
+						Error("Internal error - invalid method", ANNabort);
+					}
+				}
+				else {							// use radius bound
+					if (method != STANDARD) {
+						Error("A nonzero radius bound assumes standard search",
+							ANNwarn);
+					}
+					apx_pts_in_range[i] = the_tree->annkFRSearch(
 						query_pts[i],			// query point
+						ANN_POW(radius_bound),	// squared radius search bound
 						near_neigh,				// number of near neighbors
 						curr_nn_idx,			// nearest neighbors (returned)
 						curr_dists,				// distance (returned)
 						epsilon);				// error bound
-					break;
-				case PRIORITY:					// priority search
-					the_tree->annkPriSearch(
-						query_pts[i],			// query point
-						near_neigh,				// number of near neighbors
-						curr_nn_idx,			// nearest neighbors (returned)
-						curr_dists,				// distance (returned)
-						epsilon);				// error bound
-					break;
 				}
 				curr_nn_idx += near_neigh;		// increment current pointers
 				curr_dists	+= near_neigh;
 
 				#ifdef ANN_PERF
-					annUpdateStats();				// update stats
+					annUpdateStats();			// update stats
 				#endif
 			}
 
@@ -1014,8 +1096,10 @@ int main(int argc, char** argv)
 				cout << "  search_method = " << arg << "\n";
 				cout << "  epsilon       = " << epsilon << "\n";
 				cout << "  near_neigh    = " << near_neigh << "\n";
-				if (max_pts_visit)
+				if (max_pts_visit != 0)
 					cout << "  max_pts_visit = " << max_pts_visit << "\n";
+				if (radius_bound != 0)
+					cout << "  radius_bound  = " << radius_bound << "\n";
 				if (validate)
 					cout << "  true_nn       = " << true_nn << "\n";
 
@@ -1041,15 +1125,30 @@ int main(int argc, char** argv)
 				if (stats >= QUERY_RES) {		// output results
 					cout << "  (Query Results:\n";
 					cout << "    Pt\tANN\tDist\n";
-					curr_nn_idx = apx_nn_idx;
+					curr_nn_idx = apx_nn_idx;	// subarray pointers
 					curr_dists  = apx_dists;
+												// output nearest neighbors
 					for (int i = 0; i < query_size; i++) {
 						cout << " " << setw(4) << i;
 						for (int j = 0; j < near_neigh; j++) {
-							cout << "\t" << curr_nn_idx[j]
-								 << "\t" << ANN_ROOT(curr_dists[j]) << "\n";
+												// exit if no more neighbors
+							if (curr_nn_idx[j] == ANN_NULL_IDX) {
+								cout << "\t[no other pts in radius bound]\n";
+								break;
+							}
+							else {				// output point info
+								cout << "\t" << curr_nn_idx[j]
+								 	<< "\t" << ANN_ROOT(curr_dists[j])
+								 	<< "\n";
+							}
 						}
-						curr_nn_idx += near_neigh;// incr current pointers
+												// output range count
+						if (radius_bound != 0) {
+							cout << "    pts_in_radius_bound = "
+								<< apx_pts_in_range[i] << "\n";
+						}
+												// increment subarray pointers
+						curr_nn_idx += near_neigh;
 						curr_dists  += near_neigh;
 					}
 					cout << "  )\n";
@@ -1068,10 +1167,14 @@ int main(int argc, char** argv)
 	//--------------------------------------------------------------------
 	//	End of input loop (deallocate stuff that was allocated)
 	//--------------------------------------------------------------------
-	if (the_tree  != NULL) { delete the_tree; the_tree  = NULL; }
-	if (data_pts != NULL)  { annDeallocPts(data_pts);  data_pts  = NULL; }
-	if (query_pts != NULL) { annDeallocPts(query_pts); query_pts = NULL; }
-	annClose();
+	if (the_tree  		!= NULL) delete the_tree;
+	if (data_pts  		!= NULL) annDeallocPts(data_pts);
+	if (query_pts 		!= NULL) annDeallocPts(query_pts);
+	if (apx_nn_idx		!= NULL) delete [] apx_nn_idx;
+	if (apx_dists		!= NULL) delete [] apx_dists;
+	if (apx_pts_in_range != NULL) delete [] apx_pts_in_range;
+
+	annClose();			// close ANN
 
 	return EXIT_SUCCESS;
 }
@@ -1085,7 +1188,9 @@ void generatePts(
 	ANNpointArray		&pa,			// point array (returned)
 	int					n,				// number of points to generate
 	PtType				type,			// point type
-	ANNbool				new_clust)		// new cluster centers desired?
+	ANNbool				new_clust,		// new cluster centers desired?
+	ANNpointArray		src,			// source array (if distr=PLANTED)
+	int					n_src)			// source size (if distr=PLANTED)
 {
 	if (pa != NULL) annDeallocPts(pa);			// get rid of any old points
 	pa = annAllocPts(n, dim);					// allocate point storage
@@ -1115,6 +1220,9 @@ void generatePts(
 		case CLUS_ELLIPSOIDS:					// clustered ellipsoids
 			annClusEllipsoids(pa, n, dim, n_color, new_clust, std_dev,
 						std_dev_lo, std_dev_hi, max_dim);
+			break;
+		case PLANTED:							// planted distribution
+			annPlanted(pa, n, dim, src, n_src, std_dev);
 			break;
 		default:
 			Error("INTERNAL ERROR: Unknown distribution", ANNabort);
@@ -1248,6 +1356,15 @@ void readPts(
 //		In particular, once generated, it will be regenerated only if
 //		new query or data points are generated, or if the requested number
 //		of true near neighbors or approximate near neighbors has changed.
+//
+//		To validate fixed-radius searching, we compute two counts, one
+//		with the original query radius (trueSqRadius) and the other with
+//		a radius shrunken by the error factor (minSqradius).  We then
+//		check that the count of points inside the approximate range is
+//		between these two bounds.  Because fixed-radius search is
+//		allowed to ignore points within the shrunken radius, we only
+//		compute exact neighbors within this smaller distance (for we
+//		cannot guarantee that we will even visit the other points).
 //------------------------------------------------------------------------
 
 void getTrueNN()						// compute true nearest neighbors
@@ -1256,15 +1373,20 @@ void getTrueNN()						// compute true nearest neighbors
 		cout << "(Computing true nearest neighbors for validation.  This may take time.)\n";
 	}
 												// deallocate existing storage
-	if (true_nn_idx != NULL) delete [] true_nn_idx;
-	if (true_dists  != NULL) delete [] true_dists;
+	if (true_nn_idx			!= NULL) delete [] true_nn_idx;
+	if (true_dists			!= NULL) delete [] true_dists;
+	if (min_pts_in_range	!= NULL) delete [] min_pts_in_range;
+	if (max_pts_in_range	!= NULL) delete [] max_pts_in_range;
 
-	if (true_nn > data_size) {					// cannot get more true nn than points
+	if (true_nn > data_size) {					// can't get more nn than points
 		true_nn = data_size;
 	}
 
-	true_nn_idx = new int[true_nn*query_size];	// allocate true answer storage
+												// allocate true answer storage
+	true_nn_idx = new ANNidx[true_nn*query_size];
 	true_dists  = new ANNdist[true_nn*query_size];
+	min_pts_in_range = new int[query_size];
+	max_pts_in_range = new int[query_size];
 
 	ANNidxArray  curr_nn_idx = true_nn_idx;		// current locations in arrays
 	ANNdistArray curr_dists = true_dists;
@@ -1273,11 +1395,28 @@ void getTrueNN()						// compute true nearest neighbors
 	ANNbruteForce *the_brute = new ANNbruteForce(data_pts, data_size, dim);
 												// compute nearest neighbors
 	for (int i = 0; i < query_size; i++) {
-		the_brute->annkSearch(					// compute true near neighbors
+		if (radius_bound == 0) {				// standard kNN search
+			the_brute->annkSearch(				// compute true near neighbors
 						query_pts[i],			// query point
 						true_nn,				// number of nearest neighbors
 						curr_nn_idx,			// where to put indices
 						curr_dists);			// where to put distances
+		}
+		else {									// fixed radius kNN search
+												// search radii limits
+			ANNdist trueSqRadius = ANN_POW(radius_bound);
+			ANNdist minSqRadius = ANN_POW(radius_bound / (1+epsilon));
+			min_pts_in_range[i] = the_brute->annkFRSearch(
+						query_pts[i],			// query point
+						minSqRadius,			// shrunken search radius
+						true_nn,				// number of near neighbors
+						curr_nn_idx,			// nearest neighbors (returned)
+						curr_dists);			// distance (returned)
+			max_pts_in_range[i] = the_brute->annkFRSearch(
+						query_pts[i],			// query point
+						trueSqRadius,			// true search radius
+						0, NULL, NULL);			// (ignore kNN info)
+		}
 		curr_nn_idx += true_nn;					// increment nn index pointer
 		curr_dists  += true_nn;					// increment nn dist pointer
 	}
@@ -1292,13 +1431,18 @@ void getTrueNN()						// compute true nearest neighbors
 //		assumed that the true nearest neighbors and indices have been
 //		computed earlier.
 //
-//		We compute two quantities:
+//		First, we check that all the results are within their allowed
+//		limits, and generate an internal error, if not.  For the sake of
+//		performance evaluation, we also compute the following two
+//		quantities for nearest neighbors:
 //
 //		Average Error
+//		-------------
 //		The relative error between the distance to a reported nearest
 //		neighbor and the true nearest neighbor (of the same rank),
 //
 //		Rank Error
+//		----------
 //		The difference in rank between the reported nearest neighbor and
 //		its position (if any) among the true nearest neighbors.  If we
 //		cannot find this point among the true nearest neighbors, then
@@ -1311,47 +1455,69 @@ void getTrueNN()						// compute true nearest neighbors
 //		below, j is an array index and so the first item is 0, not 1.  Thus
 //		we take max(0, j+1-rnk) instead.)
 //
+//		For the results of fixed-radious range count, we verify that the
+//		reported number of points in the range lies between the actual
+//		number of points in the shrunken and the true search radius.
 //------------------------------------------------------------------------
 
 void doValidation()						// perform validation
 {
-	int			 *curr_apx_idx = apx_nn_idx;	// approx index pointer
+	int*		  curr_apx_idx = apx_nn_idx;	// approx index pointer
 	ANNdistArray  curr_apx_dst = apx_dists;		// approx distance pointer
-	int			 *curr_tru_idx = true_nn_idx;	// true index pointer
+	int*		  curr_tru_idx = true_nn_idx;	// true index pointer
 	ANNdistArray  curr_tru_dst = true_dists;	// true distance pointer
 	int i, j;
+
 	if (true_nn < near_neigh) {
 		Error("Cannot validate with fewer true near neighbors than actual", ANNabort);
 	}
 
 	for (i = 0; i < query_size; i++) {			// validate each query
-		//--------------------------------------------------------------------
-		//		Compute average errors
-		//--------------------------------------------------------------------
+		//----------------------------------------------------------------
+		//	Compute result errors
+		//		In fixed radius search it is possible that not all k
+		//		nearest neighbors were computed.  Because the true
+		//		results are computed over the shrunken radius, we should
+		//		have at least as many true nearest neighbors as
+		//		approximate nearest neighbors. (If not, an infinite
+		//		error will be generated, and so an internal error will
+		//		will be generated.
+		//
+		//		Because nearest neighbors are sorted in increasing order
+		//		of distance, as soon as we see a null index, we can
+		//		terminate the distance checking.  The error in the
+		//		result should not exceed epsilon.  However, if
+		//		max_pts_visit is nonzero (meaning that the search is
+		//		terminated early) this might happen.
+		//----------------------------------------------------------------
 		for (j = 0; j < near_neigh; j++) {
-			double avgErr = 0.0;				// average error
+			if (curr_tru_idx[j] == ANN_NULL_IDX)// no more true neighbors?
+				break;
 												// true i-th smallest distance
 			double true_dist = ANN_ROOT(curr_tru_dst[j]);
 												// reported i-th smallest
 			double rept_dist = ANN_ROOT(curr_apx_dst[j]);
 												// better than optimum?
 			if (rept_dist < true_dist*(1-ERR)) {
-				Error("INTERNAL ERROR: True nearest neighbor incorrect", ANNabort);
+				Error("INTERNAL ERROR: True nearest neighbor incorrect",
+						ANNabort);
 			}
 
+			double resultErr;					// result error
 			if (true_dist == 0.0) {				// let's not divide by zero
-				if (rept_dist != 0.0) avgErr = ANN_DBL_MAX;
-				else				  avgErr = 0.0;
+				if (rept_dist != 0.0) resultErr = ANN_DBL_MAX;
+				else				  resultErr = 0.0;
 			}
 			else {
-				avgErr = (rept_dist - true_dist) / ((double) true_dist);
+				resultErr = (rept_dist - true_dist) / ((double) true_dist);
 			}
 
-			if (avgErr > epsilon && max_pts_visit == 0) {
-				Error("INTERNAL ERROR: Average error exceeds epsilon", ANNabort);
+			if (resultErr > epsilon && max_pts_visit == 0) {
+				Error("INTERNAL ERROR: Actual error exceeds epsilon",
+						ANNabort);
 			}
 			#ifdef ANN_PERF
-				ann_average_err += avgErr;		// update statistics error
+				ann_average_err += resultErr;	// update statistics error
 			#endif
 		}
 		//--------------------------------------------------------------------
@@ -1359,15 +1525,29 @@ void doValidation()						// perform validation
 		//--------------------------------------------------------------------
 		#ifdef ANN_PERF
 			for (j = 0; j < near_neigh; j++) {
+				if (curr_tru_idx[i] == ANN_NULL_IDX) // no more true neighbors?
+					break;
+
 				double rnkErr = 0.0;			// rank error
 												// reported j-th distance
 				ANNdist rept_dist = curr_apx_dst[j];
 				int rnk = 0;					// compute rank of this item
-				while (rnk < true_nn && curr_tru_dst[rnk] <= rept_dist) rnk++;
+				while (rnk < true_nn && curr_tru_dst[rnk] <= rept_dist)
+					rnk++;
 				if (j+1-rnk > 0) rnkErr = (double) (j+1-rnk);
 				ann_rank_err += rnkErr;			// update average rank error
 			}
 		#endif
+		//----------------------------------------------------------------
+		//	Check range counts from fixed-radius query
+		//----------------------------------------------------------------
+		if (radius_bound != 0) {				// fixed-radius search
+			if  (apx_pts_in_range[i] < min_pts_in_range[i] ||
+				 apx_pts_in_range[i] > max_pts_in_range[i])
+				Error("INTERNAL ERROR: Invalid fixed-radius range count",
+						ANNabort);
+		}
+
 		curr_apx_idx += near_neigh;
 		curr_apx_dst += near_neigh;
 		curr_tru_idx += true_nn;				// increment current pointers

@@ -1,32 +1,30 @@
 //----------------------------------------------------------------------
 // File:			ann2fig.cpp
 // Programmer:		David Mount
-// Last modified:	03/04/98 (Release 0.1)
+// Last modified:	05/03/05
 // Description:		convert ann dump file to fig file
 //----------------------------------------------------------------------
-// Copyright (c) 1997-1998 University of Maryland and Sunil Arya and David
-// Mount.  All Rights Reserved.
+// Copyright (c) 1997-2005 University of Maryland and Sunil Arya and
+// David Mount.  All Rights Reserved.
 // 
-// This software and related documentation is part of the 
-// Approximate Nearest Neighbor Library (ANN).
+// This software and related documentation is part of the Approximate
+// Nearest Neighbor Library (ANN).  This software is provided under
+// the provisions of the Lesser GNU Public License (LGPL).  See the
+// file ../ReadMe.txt for further information.
 // 
-// Permission to use, copy, and distribute this software and its 
-// documentation is hereby granted free of charge, provided that 
-// (1) it is not a component of a commercial product, and 
-// (2) this notice appears in all copies of the software and
-//     related documentation. 
-// 
-// The University of Maryland (U.M.) and the authors make no representations
-// about the suitability or fitness of this software for any purpose.  It is
-// provided "as is" without express or implied warranty.
+// The University of Maryland (U.M.) and the authors make no
+// representations about the suitability or fitness of this software for
+// any purpose.  It is provided "as is" without express or implied
+// warranty.
 //----------------------------------------------------------------------
-//      History:
-//      Revision 0.1  03/04/98
-//          Initial release
-//      Revision 1.0  04/01/05
-//          Changed dump file suffix from .ann to .dmp.
+// History:
+//	Revision 0.1  03/04/98
+//		Initial release
+//	Revision 1.0  04/01/05
+//		Changed dump file suffix from .ann to .dmp.
+//	Revision 1.1  05/03/05
+//		Fixed usage output string.
 //----------------------------------------------------------------------
-//
 //	This program inputs an ann dump file of a search structure
 //	perhaps along with point coordinates, and outputs a fig (Ver 3.1)
 //	file (see fig2dev (1)) displaying the tree.  The fig file may
@@ -153,25 +151,25 @@ void getArgs(int argc, char **argv)
 
 	if (argc <= 1) {
 		cerr << "Syntax:\n\
-		ann2fig [-upi scale] [-x low_x] [-y low_y]\n\
-				[-sz size] [-dx dim_x] [-dy dim_y] [-sl dim value]*\n\
-				file\n\
-		\n\
-		where:\n\
-			-upi scale			fig units per inch (default = 1200)\n\
-			-x low_x			x and y offset of upper left corner (inches)\n\
-			-y low_y			...(default = 1)\n\
-			-sz size			maximum side length of figure (in inches)\n\
-								...(default = 5)\n\
-			-dx dim_x			horizontal dimension (default = 0)\n\
-			-dy dim_y			vertical dimension (default = 1)\n\
-			-sv value			default slice value (default = 0)\n\
-			-sl dim value		each such pair defines the value along the\n\
-								...given dimension at which to slice.  This\n\
-								...may be supplied for each dimension except\n\
-								...dim_x and dim_y.\n\
-			-ps pointsize		size of points in fig units (def = 10)\n\
-			file				file (input=file.dmp, output=file.fig)\n";
+        ann2fig [-upi scale] [-x low_x] [-y low_y]\n\
+                [-sz size] [-dx dim_x] [-dy dim_y] [-sl dim value]*\n\
+                file\n\
+        \n\
+        where:\n\
+            -upi scale          fig units per inch (default = 1200)\n\
+            -x low_x            x and y offset of upper left corner (inches)\n\
+            -y low_y            ...(default = 1)\n\
+            -sz size            maximum side length of figure (in inches)\n\
+                                ...(default = 5)\n\
+            -dx dim_x           horizontal dimension (default = 0)\n\
+            -dy dim_y           vertical dimension (default = 1)\n\
+            -sv value           default slice value (default = 0)\n\
+            -sl dim value       each such pair defines the value along the\n\
+                                ...given dimension at which to slice.  This\n\
+                                ...may be supplied for each dimension except\n\
+                                ...dim_x and dim_y.\n\
+            -ps pointsize       size of points in fig units (def = 10)\n\
+            file                file (input=file.dmp, output=file.fig)\n";
 		exit(0);
 	}
 

@@ -2,7 +2,7 @@
 // File:			kd_tree.h
 // Programmer:		Sunil Arya and David Mount
 // Description:		Declarations for standard kd-tree routines
-// Last modified:	01/04/05 (Version 1.0)
+// Last modified:	05/03/05 (Version 1.1)
 //----------------------------------------------------------------------
 // Copyright (c) 1997-2005 University of Maryland and Sunil Arya and
 // David Mount.  All Rights Reserved.
@@ -20,6 +20,8 @@
 // History:
 //	Revision 0.1  03/04/98
 //		Initial release
+//	Revision 1.1  05/03/05
+//		Added fixed radius kNN search
 //----------------------------------------------------------------------
 
 #ifndef ANN_kd_tree_H
@@ -47,6 +49,7 @@ public:
 
 	virtual void ann_search(ANNdist) = 0;		// tree search
 	virtual void ann_pri_search(ANNdist) = 0;	// priority search
+	virtual void ann_FR_search(ANNdist) = 0;	// fixed-radius search
 
 	virtual void getStats(						// get tree statistics
 				int dim,						// dimension of space
@@ -107,8 +110,9 @@ public:
 	virtual void print(int level, ostream &out);// print node
 	virtual void dump(ostream &out);			// dump node
 
-	virtual void ann_search(ANNdist);			// standard search routine
-	virtual void ann_pri_search(ANNdist);		// priority search routine
+	virtual void ann_search(ANNdist);			// standard search
+	virtual void ann_pri_search(ANNdist);		// priority search
+	virtual void ann_FR_search(ANNdist);		// fixed-radius search
 };
 
 //----------------------------------------------------------------------
@@ -172,8 +176,9 @@ public:
 	virtual void print(int level, ostream &out);// print node
 	virtual void dump(ostream &out);			// dump node
 
-	virtual void ann_search(ANNdist);			// standard search routine
-	virtual void ann_pri_search(ANNdist);		// priority search routine
+	virtual void ann_search(ANNdist);			// standard search
+	virtual void ann_pri_search(ANNdist);		// priority search
+	virtual void ann_FR_search(ANNdist);		// fixed-radius search
 };
 
 //----------------------------------------------------------------------

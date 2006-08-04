@@ -92,8 +92,9 @@ public:
 	virtual void print(int level, ostream &out);// print node
 	virtual void dump(ostream &out);			// dump node
 
-	virtual void ann_search(ANNdist);			// standard search routine
-	virtual void ann_pri_search(ANNdist);		// priority search routine
+	virtual void ann_search(ANNdist);			// standard search
+	virtual void ann_pri_search(ANNdist);		// priority search
+	virtual void ann_FR_search(ANNdist); 		// fixed-radius search
 };
 
 #endif

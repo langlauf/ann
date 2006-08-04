@@ -110,7 +110,7 @@ void ANNkd_tree::annkPriSearch(
 	ANNprBoxPQ->insert(box_dist, root); // insert root in priority queue
 
 	while (ANNprBoxPQ->non_empty() &&
-		(!ANNmaxPtsVisited || ANNptsVisited < ANNmaxPtsVisited)) {
+		(!(ANNmaxPtsVisited != 0 && ANNptsVisited > ANNmaxPtsVisited))) {
 		ANNkd_ptr np;					// next box from prior queue
 
 										// extract closest box from queue

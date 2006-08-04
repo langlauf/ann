@@ -1,6 +1,6 @@
 ANN: Approximate Nearest Neighbors
-Version: 1.0
-Release date: April 1, 2005
+Version: 1.1.1
+Release date: Aug 4, 2006
 ----------------------------------------------------------------------------
 Copyright (c) 1997-2005 University of Maryland and Sunil Arya and David
 Mount. All Rights Reserved.  See Copyright.txt and License.txt for
@@ -58,3 +58,11 @@ History
     Improved compatibility with current C++ compilers
     Added compilation for Microsoft Visual Studio.NET
     Added compilation for Linux 2.x
+  Version 1.1  05/03/05
+    Added make target for Mac OS X
+    Added fixed-radius range searching and counting
+    Added instructions on compiling/using ANN on Windows platforms
+    Fixed minor output bug in ann2fig
+  Version 1.1.1  08/04/06
+    Added "planted" distribution
+    Updated old source comments for GNU LPL.
